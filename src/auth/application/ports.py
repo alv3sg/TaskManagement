@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Protocol, Iterable, Optional
 from dataclasses import dataclass
-from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus
+from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, RefreshToken
 
 # Erros da aplicação (não HTTP)
 
@@ -27,3 +27,10 @@ class UserRepository(Protocol):
 class PasswordHasher(Protocol):
     def hash(self, password: str) -> str: ...
     def verify(self, password: str, password_hash: str) -> bool: ...
+
+
+class RefreshTokenRepository(Protocol):
+    def add(self, token: RefreshToken) -> None: ...
+    def get(self, token_id: str) -> RefreshToken: ...
+    def save(self, token: RefreshToken) -> None: ...
+    def revoke(self, token_id: str) -> None: ...

@@ -1,9 +1,9 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 import re
 import uuid
-from __future__ import annotations
 
 
 class DomainError(Exception):
