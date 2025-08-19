@@ -1,90 +1,66 @@
-Domain (clean, framework‑free)
+# Task Management Project – Current Status
 
-Value Objects
+## Domain (clean, framework-free)
 
-Email: normalizes (trim + lowercase) and validates format; raises InvalidEmail.
+### Value Objects
+- **Email**: normalizes (trim + lowercase) and validates format; raises `InvalidEmail`.
+- **UserId**: wraps a `uuid.UUID` with `UserId.new()` factory.
+- **PasswordHash**: opaque wrapper; rejects obviously invalid hashes.
 
-UserId: wraps a uuid.UUID with UserId.new() factory.
+### Entities
+- **User**:  
+  Fields: `id: UserId`, `email: Email`, `password_hash: PasswordHash`, `status: UserStatus`, `created_at`.  
+  Behaviors: `change_email`, `change_password`, `ensure_can_authenticate` (raises `UserLocked`), `lock`, `issue_refresh_token(...)`.
+- **RefreshToken**:  
+  Fields: `id: UUID`, `user_id: UserId`, `issued_at`, `expires_at`, `revoked_at`.  
+  Behaviors: `ensure_active()` (raises `TokenExpired`), `revoke()`.
 
-PasswordHash: opaque wrapper; rejects obviously invalid hashes.
+### Errors (domain)
+- `DomainError` base; specialized: `UserLocked`, `TokenExpired`, `InvalidEmail`.
 
-Entities
+### Invariants
+- User blocked cannot authenticate.
+- Email is always normalized and valid at creation.
+- Refresh token only valid if not expired or revoked.
 
-User: fields id: UserId, email: Email, password_hash: PasswordHash, status: UserStatus, created_at.
+---
 
-Behaviors: change_email, change_password, ensure_can_authenticate (raises UserLocked), lock, issue_refresh_token(...).
+## Application (use cases + ports/contracts)
 
-RefreshToken: fields id: UUID, user_id: UserId, issued_at, expires_at, revoked_at.
+### Ports
+- `UserRepository`: `add`, `save`, `get_by_id`, `get_by_email`, `exists_by_email`, `list`.
+- `PasswordHasher`: `hash`, `verify`.
+- (Planned) `RefreshTokenRepository`, `AccessTokenEncoder`.
 
-Behaviors: ensure_active() (raises TokenExpired if expired/revoked), revoke().
+### Use Cases (User CRUD)
+- `CreateUser`: Creates user with validated email and hashed password, prevents duplicates.
+- `GetUser`, `ListUsers`: Read by id and list with pagination.
+- `UpdateUserEmail`: Changes email with validation and duplication prevention.
+- `UpdateUserPassword`: Changes password via `PasswordHasher`.
+- `SetUserStatus`: Locks/unlocks user.
+- `DeleteUser`: Soft delete by locking user.
 
-Errors (domain)
+### Testability
+- In-memory fake repositories and fakes for password hashing allow TDD without DB/framework.
 
-DomainError base; specialized: UserLocked, TokenExpired, InvalidEmail.
+---
 
-Invariants
+## Key Decisions
+- **DDD + Clean Architecture**: Bounded contexts, dependencies pointing inward.
+- **Framework-free domain**: No Pydantic, ORM, or JWT in core.
+- **Access token ≠ domain**: Will be implemented via `AccessTokenEncoder` in app/infra.
+- **Refresh token = domain**: Modeled as entity with lifecycle.
 
-Usuário bloqueado não autentica.
+---
 
-E‑mail sempre normalizado e válido no momento da criação.
-
-Refresh token só é válido se não estiver expirado nem revogado.
-
-Application (use cases + ports/contracts)
-
-Ports (interfaces/Protocol)
-
-UserRepository: add, save, get_by_id, get_by_email, exists_by_email, list.
-
-PasswordHasher: hash, verify.
-
-(Preparado para incluir) RefreshTokenRepository, AccessTokenEncoder nos casos de login/refresh.
-
-Use Cases (CRUD de usuário)
-
-CreateUser: cria User com UserId.new(), valida Email, gera PasswordHash via PasswordHasher, impede e‑mail duplicado.
-
-GetUser, ListUsers: leitura por id e paginação básica.
-
-UpdateUserEmail: troca e‑mail com validação e prevenção de duplicidade.
-
-UpdateUserPassword: redefine a senha aplicando novo PasswordHash.
-
-SetUserStatus: lock/unlock do usuário.
-
-DeleteUser: soft‑delete via lock (seguro para auditoria).
-
-Teste facilitado
-
-Repositório fake em memória e hasher fake permitem TDD sem banco ou framework.
-
-Decisões-chave que estamos seguindo
-
-DDD + Clean Architecture: módulos por contexto (bounded contexts), dependências apontando para dentro (interfaces → aplicação → domínio; infraestrutura → aplicação).
-
-Domínio sem frameworks: nada de Pydantic/ORM/JWT no core.
-
-Access token ≠ domínio: JWT/Paseto é transporte; ficará em AccessTokenEncoder (aplicação/infra).
-Refresh token = domínio: modelado como entidade com ciclo de vida.
-
-O que falta para fechar Auth end‑to‑end
-
-Infraestrutura (quando terminar seu estudo de Mongo):
-
-MongoUserRepository, MongoRefreshTokenRepository.
-
-Argon2PasswordHasher (ou Bcrypt).
-
-(Depois) JWTAccessTokens (AccessTokenEncoder).
-
-Use cases de sessão:
-
-Login: verifica senha, emite RefreshToken, gera access token (curto).
-
-RefreshSession: valida/rotaciona refresh, gera novo access token.
-
-Logout: revoga refresh token (ou todos do usuário).
-
-Interfaces (HTTP):
-
-Rotas FastAPI chamando os use cases e convertendo DTOs ↔ VO/Entidades.
+## Remaining to Complete Auth End-to-End
+- **Infrastructure**:
+  - `MongoUserRepository`, `MongoRefreshTokenRepository`.
+  - `Argon2PasswordHasher` (or bcrypt).
+- **(Later)** `JWTAccessTokens` (`AccessTokenEncoder`).
+- **Session Use Cases**:
+  - `Login`: Verify password, issue refresh token, return short-lived access token.
+  - `RefreshSession`: Validate/rotate refresh, issue new access token.
+  - `Logout`: Revoke refresh token(s).
+- **HTTP Interfaces**:
+  - FastAPI routes calling use cases, mapping DTOs ↔ VOs/entities.

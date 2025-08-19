@@ -1,9 +1,10 @@
 # app/auth/application/use_cases.py
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import timedelta
+from uuid import uuid4
 from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus
-from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists
-import uuid
+from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult
 
 # Create (Register)
 
@@ -111,3 +112,38 @@ class DeleteUser:
         user = self.users.get_by_id(user_id)
         user.lock()  # soft delete em auth
         self.users.save(user)
+
+
+@dataclass
+class Login:
+    users: UserRepository
+    refresh_tokens: RefreshTokenRepository
+    hasher: PasswordHasher
+    access_tokens: AccessTokenEncoder
+    access_ttl: timedelta = timedelta(minutes=30)
+    refresh_ttl: timedelta = timedelta(days=7)
+
+    def execute(self, *, email: str, password: str) -> LoginResult:
+        email_vo = Email(email)
+
+        try:
+            user_id, pwd_hash, status = self.users.get_auth_view_by_email(
+                email_vo)
+        except NotFound:
+            raise Unauthorized("Invalid credentials.")
+
+        if status != UserStatus.ACTIVE.value:
+            raise Unauthorized("Invalid credentials.")
+
+        if not self.hasher.verify(password, pwd_hash.value):
+            raise Unauthorized("Invalid credentials.")
+
+        user = self.users.get_by_id(user_id)
+        refresh = user.issue_refresh_token(
+            token_id=uuid4(), ttl=self.refresh_ttl)
+        self.refresh_tokens.add(refresh)
+
+        access = self.access_tokens.encode(
+            subject=str(user_id.value), ttl=self.access_ttl)
+
+        return LoginResult(user_id=user_id, access_token=access, refresh_token=str(refresh.id))

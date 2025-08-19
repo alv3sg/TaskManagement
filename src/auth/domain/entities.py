@@ -95,7 +95,7 @@ class User:
         now = now or datetime.now(timezone.utc)
         return RefreshToken(
             id=token_id,
-            user_id=self.id,
+            user_id=self.id.value,
             issued_at=now,
             expires_at=now + ttl,
             revoked_at=None

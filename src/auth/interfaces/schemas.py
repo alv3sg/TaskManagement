@@ -31,3 +31,14 @@ class UserResponse(BaseModel):
     email: EmailStr
     status: Literal["active", "locked"]
     created_at: datetime
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenPairResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    refresh_token: str

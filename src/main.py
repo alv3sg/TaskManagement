@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from .core.infrastructure.db.mongodb import get_mongo_client, get_db
-from .core.infrastructure.db.settings import MongoSettings
-from .auth.infrastructure.mongo_user_repository import MongoUserRepository
-from .auth.infrastructure.mongo_refresh_token_repository import MongoRefreshTokenRepository
-from .auth.infrastructure.argon2_hasher import Argon2PasswordHasher
-from .auth.interfaces.http import router as users_router
+from core.infrastructure.db.mongodb import get_mongo_client, get_db
+from core.infrastructure.db.settings import MongoSettings
+from auth.infrastructure.mongo_user_repository import MongoUserRepository
+from auth.infrastructure.mongo_refresh_token_repository import MongoRefreshTokenRepository
+from auth.infrastructure.argon2_hasher import Argon2PasswordHasher
+from auth.infrastructure.jwt_access_token import JwtAccessToken
+from auth.interfaces.user_http import router as users_router
+from auth.interfaces.auth_http import router as auth_router
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 def create_app() -> FastAPI:
@@ -18,9 +24,11 @@ def create_app() -> FastAPI:
     app.state.user_repo = MongoUserRepository(db["users"])
     app.state.refresh_repo = MongoRefreshTokenRepository(db["refresh_tokens"])
     app.state.hasher = Argon2PasswordHasher()
+    app.state.access_tokens = JwtAccessToken()
 
     # Interfaces
     app.include_router(users_router)
+    app.include_router(auth_router)
 
     return app
 

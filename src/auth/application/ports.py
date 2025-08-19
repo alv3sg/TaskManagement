@@ -2,7 +2,9 @@
 from __future__ import annotations
 from typing import Protocol, Iterable, Optional
 from dataclasses import dataclass
-from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, RefreshToken
+from datetime import timedelta
+from ..domain.entities import User, UserId, Email, PasswordHash, RefreshToken
+
 
 # Erros da aplicação (não HTTP)
 
@@ -15,6 +17,10 @@ class AlreadyExists(Exception):
     ...
 
 
+class Unauthorized(Exception):
+    ...
+
+
 class UserRepository(Protocol):
     def add(self, user: User) -> None: ...
     def save(self, user: User) -> None: ...
@@ -22,6 +28,8 @@ class UserRepository(Protocol):
     def get_by_email(self, email: Email) -> User: ...
     def exists_by_email(self, email: Email) -> bool: ...
     def list(self, *, limit: int = 50, offset: int = 0) -> Iterable[User]: ...
+    def get_auth_view_by_email(
+        self, email: Email) -> tuple[UserId, PasswordHash, str]: ...
 
 
 class PasswordHasher(Protocol):
@@ -34,3 +42,14 @@ class RefreshTokenRepository(Protocol):
     def get(self, token_id: str) -> RefreshToken: ...
     def save(self, token: RefreshToken) -> None: ...
     def revoke(self, token_id: str) -> None: ...
+
+
+class AccessTokenEncoder(Protocol):
+    def encode(self, subject: str, ttl: timedelta) -> str: ...
+
+
+@dataclass
+class LoginResult:
+    user_id: UserId
+    access_token: str
+    refresh_token: str  # or a VO if you prefer

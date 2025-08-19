@@ -33,7 +33,7 @@ def user_from_doc(doc: Dict[str, Any]) -> User:
 def refresh_to_doc(rt: RefreshToken) -> Dict[str, Any]:
     return {
         "_id": str(rt.id),
-        "user_id": str(rt.user_id.value),
+        "user_id": str(rt.user_id),
         "issued_at": rt.issued_at,
         "expires_at": rt.expires_at,
         "revoked_at": rt.revoked_at,

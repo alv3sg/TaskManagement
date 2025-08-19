@@ -3,7 +3,7 @@ from pymongo.collection import Collection
 from pymongo import ASCENDING, ReturnDocument
 
 from ..application.ports import UserRepository, NotFound, AlreadyExists
-from ..domain.entities import User, UserId, Email
+from ..domain.entities import User, UserId, Email, PasswordHash
 from ._mappers import user_to_doc, user_from_doc
 
 
@@ -31,6 +31,20 @@ class MongoUserRepository(UserRepository):
             {"_id": doc["_id"]}, doc, return_document=ReturnDocument.AFTER)
         if not res:
             raise NotFound("Usuário não encontrado")
+
+    def get_auth_view_by_email(self, email: Email):
+        doc = self.col.find_one(
+            {"email": email.value},
+            {"_id": 1, "password_hash": 1, "status": 1}
+        )
+        if not doc:
+            raise NotFound("User not found")
+        # adapt to your stored formats
+        return (
+            UserId(doc["_id"]),
+            PasswordHash(doc["password_hash"]),
+            doc["status"]
+        )
 
     def get_by_id(self, user_id: UserId) -> User:
         doc = self.col.find_one({"_id": str(user_id.value)})
