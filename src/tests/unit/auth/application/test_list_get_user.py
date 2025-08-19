@@ -1,5 +1,7 @@
+import pytest
 from auth.application.user_cases import ListUsers, GetUser
 from auth.application.ports import NotFound
+import uuid
 
 
 def test_list_users(user_repo, make_user):
@@ -19,10 +21,6 @@ def test_get_user_by_id(user_repo, make_user):
 
 def test_get_user_not_found(user_repo):
     uc = GetUser(users=user_repo)
-    import uuid
     bogus = str(uuid.uuid4())
-    try:
+    with pytest.raises(NotFound):
         uc.execute(user_id=bogus)
-        assert False, "expected NotFound"
-    except NotFound:
-        pass

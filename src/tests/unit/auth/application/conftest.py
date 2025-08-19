@@ -1,9 +1,9 @@
-import uuid
 import pytest
 from collections import OrderedDict
-from auth.domain.entities import User, UserId, Email, PasswordHash, UserStatus
-from auth.application.ports import UserRepository, NotFound
-
+from auth.domain.entities import User, UserId, Email, PasswordHash, UserStatus, RefreshToken
+from auth.application.ports import UserRepository, NotFound, RefreshTokenRepository, AccessTokenEncoder, PasswordHasher
+from datetime import timedelta, timezone, datetime
+from uuid import UUID
 # ---- Fakes ----
 
 
@@ -41,6 +41,13 @@ class FakeUserRepo(UserRepository):
         values = list(self._users_by_id.values())
         return values[offset: offset + limit]
 
+    def get_auth_view_by_email(
+            self, email: Email) -> tuple[UserId, PasswordHash, str]:
+        user = self.get_by_email(email)
+        status = user.status.value if hasattr(
+            user.status, "value") else user.status
+        return (user.id, user.password_hash, status)
+
 
 class FakeHasher:
     def hash(self, pwd: str) -> str:
@@ -49,6 +56,26 @@ class FakeHasher:
     def verify(self, pwd: str, password_hash: str) -> bool:
         return password_hash == "hash::" + pwd
 
+
+class FakeRefreshTokenRepo:
+    def add(self, token: RefreshToken) -> None: ...
+
+    def get(self, token_id: str) -> RefreshToken:
+        return RefreshToken(
+            id=UUID(token_id),
+            user_id=UserId.new(),
+            issued_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            revoked_at=None
+        )
+
+    def save(self, token: RefreshToken) -> None: ...
+    def revoke(self, token_id: str) -> None: ...
+
+
+class FakeAccessTokenEncoder:
+    def encode(self, subject: str, ttl: timedelta) -> str:
+        return "token::" + subject + "::" + str(ttl)
 # ---- Fixtures ----
 
 
@@ -60,6 +87,16 @@ def user_repo():
 @pytest.fixture
 def hasher():
     return FakeHasher()
+
+
+@pytest.fixture
+def refresh_repo():
+    return FakeRefreshTokenRepo()
+
+
+@pytest.fixture
+def access_tokens():
+    return FakeAccessTokenEncoder()
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
-from uuid import uuid4
+from uuid import uuid4, UUID
 from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus
 from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult
 
@@ -36,7 +36,7 @@ class GetUser:
 
     def execute(self, *, user_id: str) -> User:
         try:
-            uid = UserId(uuid.UUID(user_id))
+            uid = UserId(UUID(user_id))
         except Exception:
             raise NotFound("UserId inválido")
         return self.users.get_by_id(uid)

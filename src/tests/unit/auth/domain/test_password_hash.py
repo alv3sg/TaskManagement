@@ -1,5 +1,5 @@
 import pytest
-from auth.domain.entities import PasswordHash
+from auth.domain.entities import PasswordHash, InvalidPasswordHash
 
 
 def test_password_hash_accepts_nontrivial():
@@ -9,5 +9,5 @@ def test_password_hash_accepts_nontrivial():
 
 @pytest.mark.parametrize("bad", ["", "short", "1234567890123456789"])
 def test_password_hash_rejects_too_short(bad):
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidPasswordHash):
         PasswordHash(bad)

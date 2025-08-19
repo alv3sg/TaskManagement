@@ -3,6 +3,7 @@ import pytest
 from auth.domain.entities import (
     User, UserId, Email, PasswordHash, UserStatus, UserLocked
 )
+from datetime import timedelta, timezone, datetime
 
 
 def make_user():
@@ -30,6 +31,6 @@ def test_ensure_can_authenticate_raises_when_locked():
 def test_issue_refresh_token_sets_expiry_and_user_id():
     u = make_user()
     rt = u.issue_refresh_token(token_id=uuid.uuid4(
-    ), ttl=__import__("datetime").timedelta(days=7))
-    assert rt.user_id == u.id
+    ), ttl=timedelta(days=7))
+    assert rt.user_id == u.id.value
     assert (rt.expires_at - rt.issued_at).days == 7
