@@ -23,6 +23,10 @@ class UpdatePasswordRequest(BaseModel):
 class UpdateStatusRequest(BaseModel):
     status: Literal["active", "locked"]
 
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
+
 # ---- Responses ----
 
 
@@ -42,3 +46,8 @@ class TokenPairResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     refresh_token: str
+
+
+class TokenRefreshResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

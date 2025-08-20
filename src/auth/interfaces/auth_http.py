@@ -1,11 +1,11 @@
 # auth/interfaces/auth_http.py
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from datetime import timedelta
-from .schemas import LoginRequest, TokenPairResponse
-from ..application.user_cases import Login
+from .schemas import LoginRequest, TokenPairResponse, TokenRefreshRequest, TokenRefreshResponse
+from ..application.user_cases import Login, CreateNewAccessToken
 from ..application.ports import Unauthorized
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="", tags=["auth"])
 
 
 def get_user_repo(request: Request):
@@ -49,4 +49,26 @@ def login(
         "access_token": result.access_token,
         "token_type": "bearer",
         "refresh_token": result.refresh_token,
+    }
+
+
+@router.post("/refresh", response_model=TokenRefreshResponse)
+def refresh(
+    body: TokenRefreshRequest,
+    refresh_repo=Depends(get_refresh_repo),
+    access_tokens=Depends(get_access_tokens),
+):
+    uc = CreateNewAccessToken(
+        refresh_tokens=refresh_repo,
+        access_tokens=access_tokens,
+        access_ttl=timedelta(minutes=30),
+    )
+    try:
+        result = uc.execute(refresh_token=body.refresh_token)
+    except Unauthorized as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    return {
+        "access_token": result.access_token,
+        "token_type": "bearer"
     }

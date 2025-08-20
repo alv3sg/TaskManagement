@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 from uuid import uuid4, UUID
-from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus
+from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, TokenExpired
 from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult
+from datetime import datetime, timezone
 
 # Create (Register)
 
@@ -147,3 +148,24 @@ class Login:
             subject=str(user_id.value), ttl=self.access_ttl)
 
         return LoginResult(user_id=user_id, access_token=access, refresh_token=str(refresh.id))
+
+
+@dataclass
+class CreateNewAccessToken:
+    refresh_tokens: RefreshTokenRepository
+    access_tokens: AccessTokenEncoder
+    access_ttl: timedelta = timedelta(minutes=30)
+    refresh_ttl: timedelta = timedelta(days=7)
+
+    def execute(self, *, refresh_token: str) -> LoginResult:
+        try:
+            refresh = self.refresh_tokens.get(refresh_token)
+        except NotFound:
+            raise Unauthorized("Invalid refresh token.")
+        try:
+            refresh.ensure_active(datetime.now(timezone.utc))
+        except TokenExpired:
+            raise Unauthorized("Invalid refresh token.")
+        access = self.access_tokens.encode(
+            subject=str(refresh.user_id.value), ttl=self.access_ttl)
+        return LoginResult(user_id=refresh.user_id, access_token=access, refresh_token=str(refresh.id))
