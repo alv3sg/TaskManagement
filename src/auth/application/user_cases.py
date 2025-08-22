@@ -205,10 +205,15 @@ class CreateInbox:
     inboxes: InboxRepository
 
     def execute(self, *, user_id: str, description: str) -> Inbox:
-        user = self.users.get_by_id(UserId(user_id))
-        inbox = user.issue_inbox(description)
-        self.inboxes.add(inbox)
-        return inbox
+        try:
+            user = self.users.get_by_id(UserId(user_id))
+            inbox = user.issue_inbox(description)
+            self.inboxes.add(inbox)
+            return inbox
+        except (ValueError, AttributeError) as e:
+            if "badly formed hexadecimal UUID string" in str(e):
+                raise ValueError(f"Invalid user ID format: {user_id}")
+            raise
 
 
 @dataclass
@@ -216,7 +221,10 @@ class ListInboxes:
     inboxes: InboxRepository
 
     def execute(self, *, limit: int = 50, offset: int = 0) -> list[Inbox]:
-        return list(self.inboxes.list(limit=limit, offset=offset))
+        try:
+            return list(self.inboxes.list(limit=limit, offset=offset))
+        except NotFound:
+            raise ValueError(f"Inbox not found")
 
 
 @dataclass
@@ -224,7 +232,10 @@ class GetInbox:
     inboxes: InboxRepository
 
     def execute(self, *, inbox_id: str) -> Inbox:
-        return self.inboxes.get_by_inbox_id(inbox_id)
+        try:
+            return self.inboxes.get_by_inbox_id(inbox_id)
+        except NotFound:
+            raise ValueError(f"Inbox not found")
 
 
 @dataclass
@@ -232,7 +243,10 @@ class GetInboxByUserId:
     inboxes: InboxRepository
 
     def execute(self, *, user_id: str, limit: int = 50, offset: int = 0) -> list[Inbox]:
-        return list(self.inboxes.get_by_user_id(user_id=user_id, limit=limit, offset=offset))
+        try:
+            return list(self.inboxes.get_by_user_id(user_id=user_id, limit=limit, offset=offset))
+        except NotFound:
+            raise ValueError(f"Inbox not found")
 
 
 @dataclass
@@ -240,10 +254,15 @@ class UpdateInbox:
     inboxes: InboxRepository
 
     def execute(self, *, inbox_id: str, description: str) -> Inbox:
-        inbox = self.inboxes.get_by_inbox_id(inbox_id)
-        inbox.update(description)
-        self.inboxes.save(inbox)
-        return inbox
+        try:
+            inbox = self.inboxes.get_by_inbox_id(inbox_id)
+            if not inbox:
+                raise ValueError(f"Inbox not found")
+            inbox.update(description)
+            self.inboxes.save(inbox)
+            return inbox
+        except NotFound:
+            raise ValueError(f"Inbox not found")
 
 
 @dataclass
@@ -251,10 +270,15 @@ class DeleteInbox:
     inboxes: InboxRepository
 
     def execute(self, *, inbox_id: str) -> Inbox:
-        inbox = self.inboxes.get_by_inbox_id(inbox_id)
-        inbox.delete()
-        self.inboxes.save(inbox)
-        return inbox
+        try:
+            inbox = self.inboxes.get_by_inbox_id(inbox_id)
+            if not inbox:
+                raise ValueError(f"Inbox not found")
+            inbox.delete()
+            self.inboxes.save(inbox)
+            return inbox
+        except NotFound:
+            raise ValueError(f"Inbox not found")
 
 
 @dataclass
@@ -262,7 +286,12 @@ class MoveInbox:
     inboxes: InboxRepository
 
     def execute(self, *, inbox_id: str) -> Inbox:
-        inbox = self.inboxes.get_by_inbox_id(inbox_id)
-        inbox.move()
-        self.inboxes.save(inbox)
-        return inbox
+        try:
+            inbox = self.inboxes.get_by_inbox_id(inbox_id)
+            if not inbox:
+                raise ValueError(f"Inbox not found")
+            inbox.move()
+            self.inboxes.save(inbox)
+            return inbox
+        except NotFound:
+            raise ValueError(f"Inbox not found")
