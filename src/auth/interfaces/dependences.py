@@ -21,6 +21,10 @@ def get_access_tokens(request: Request):
     return request.app.state.access_tokens
 
 
+def get_inbox_repo(request: Request):
+    return request.app.state.inbox_repo
+
+
 class CurrentUser:
     def __init__(self, user_id: UUID, scope: str):
         self.user_id = user_id

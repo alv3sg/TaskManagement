@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timedelta
 from uuid import uuid4, UUID
-from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, TokenExpired
-from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult, AccessTokenClaims
+from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, TokenExpired, Inbox
+from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult, AccessTokenClaims, InboxRepository
 from datetime import datetime, timezone
 
 
@@ -197,3 +197,72 @@ class Logout:
             self.refresh_tokens.save(refresh)
         except TokenExpired:
             raise Unauthorized("Invalid refresh token.")
+
+
+@dataclass
+class CreateInbox:
+    users: UserRepository
+    inboxes: InboxRepository
+
+    def execute(self, *, user_id: str, description: str) -> Inbox:
+        user = self.users.get_by_id(UserId(user_id))
+        inbox = user.issue_inbox(description)
+        self.inboxes.add(inbox)
+        return inbox
+
+
+@dataclass
+class ListInboxes:
+    inboxes: InboxRepository
+
+    def execute(self, *, limit: int = 50, offset: int = 0) -> list[Inbox]:
+        return list(self.inboxes.list(limit=limit, offset=offset))
+
+
+@dataclass
+class GetInbox:
+    inboxes: InboxRepository
+
+    def execute(self, *, inbox_id: str) -> Inbox:
+        return self.inboxes.get_by_inbox_id(inbox_id)
+
+
+@dataclass
+class GetInboxByUserId:
+    inboxes: InboxRepository
+
+    def execute(self, *, user_id: str, limit: int = 50, offset: int = 0) -> list[Inbox]:
+        return list(self.inboxes.get_by_user_id(user_id=user_id, limit=limit, offset=offset))
+
+
+@dataclass
+class UpdateInbox:
+    inboxes: InboxRepository
+
+    def execute(self, *, inbox_id: str, description: str) -> Inbox:
+        inbox = self.inboxes.get_by_inbox_id(inbox_id)
+        inbox.update(description)
+        self.inboxes.save(inbox)
+        return inbox
+
+
+@dataclass
+class DeleteInbox:
+    inboxes: InboxRepository
+
+    def execute(self, *, inbox_id: str) -> Inbox:
+        inbox = self.inboxes.get_by_inbox_id(inbox_id)
+        inbox.delete()
+        self.inboxes.save(inbox)
+        return inbox
+
+
+@dataclass
+class MoveInbox:
+    inboxes: InboxRepository
+
+    def execute(self, *, inbox_id: str) -> Inbox:
+        inbox = self.inboxes.get_by_inbox_id(inbox_id)
+        inbox.move()
+        self.inboxes.save(inbox)
+        return inbox

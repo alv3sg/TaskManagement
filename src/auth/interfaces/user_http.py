@@ -36,10 +36,9 @@ def to_user_response(u) -> UserResponse:
 # ----- Endpoints -----
 
 
-@router.post("", dependencies=[Depends(require_auth)], response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     body: CreateUserRequest,
-    cu: CurrentUser = Depends(require_auth),
     user_repo=Depends(get_user_repo),
     hasher=Depends(get_hasher),
 ):

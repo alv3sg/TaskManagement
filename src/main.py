@@ -6,11 +6,13 @@ from dotenv import load_dotenv
 from .core.infrastructure.db.settings import MongoSettings
 from .auth.interfaces.auth_http import router as auth_router
 from .auth.interfaces.user_http import router as users_router
+from .auth.interfaces.inbox import router as inboxes_router
 from .auth.infrastructure.jwt_access_token import JwtAccessToken
 from .core.infrastructure.db.mongodb import get_mongo_client, get_db
 from .auth.infrastructure.argon2_hasher import Argon2PasswordHasher
 from .auth.infrastructure.mongo_user_repository import MongoUserRepository
 from .auth.infrastructure.mongo_refresh_token_repository import MongoRefreshTokenRepository
+from .auth.infrastructure.mongo_inbox_repository import MongoInboxRepository
 
 load_dotenv()
 
@@ -25,10 +27,12 @@ def create_app() -> FastAPI:
     app.state.refresh_repo = MongoRefreshTokenRepository(db["refresh_tokens"])
     app.state.hasher = Argon2PasswordHasher()
     app.state.access_tokens = JwtAccessToken()
+    app.state.inbox_repo = MongoInboxRepository(db["inboxes"])
 
     # Interfaces
     app.include_router(users_router)
     app.include_router(auth_router)
+    app.include_router(inboxes_router)
 
     return app
 

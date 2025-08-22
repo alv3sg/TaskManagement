@@ -46,6 +46,7 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     return {
+        "user_id": result.user_id.value,
         "access_token": result.access_token,
         "token_type": "bearer",
         "refresh_token": result.refresh_token,

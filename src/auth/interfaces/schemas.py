@@ -27,6 +27,9 @@ class UpdateStatusRequest(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+
+class InboxRequest(BaseModel):
+    description: str
 # ---- Responses ----
 
 
@@ -43,6 +46,7 @@ class LoginRequest(BaseModel):
 
 
 class TokenPairResponse(BaseModel):
+    user_id: str
     access_token: str
     token_type: str = "bearer"
     refresh_token: str

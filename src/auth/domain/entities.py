@@ -63,6 +63,12 @@ class UserStatus(str, Enum):
     LOCKED = "locked"
 
 
+class InboxStatus(str, Enum):
+    ACTIVE = "active"
+    DELETED = "deleted"
+    MOVED = "moved"
+
+
 @dataclass
 class User:
     id: UserId
@@ -101,6 +107,13 @@ class User:
             revoked_at=None
         )
 
+    def issue_inbox(self, description: str) -> Inbox:
+        return Inbox(
+            id=uuid.uuid4(),
+            user_id=self.id.value,
+            description=description,
+        )
+
 
 @dataclass
 class RefreshToken:
@@ -118,3 +131,26 @@ class RefreshToken:
     def revoke(self, at: datetime | None = None) -> None:
         if self.revoked_at is None:
             self.revoked_at = at or datetime.now(timezone.utc)
+
+
+@dataclass
+class Inbox:
+    id: uuid.UUID
+    user_id: UserId
+    description: str
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime | None = None
+    status: InboxStatus = InboxStatus.ACTIVE
+
+    def update(self, description: str) -> None:
+        self.description = description
+        self.updated_at = datetime.now(timezone.utc)
+
+    def delete(self) -> None:
+        self.status = InboxStatus.DELETED
+        self.updated_at = datetime.now(timezone.utc)
+
+    def move(self) -> None:
+        self.status = InboxStatus.MOVED
+        self.updated_at = datetime.now(timezone.utc)
