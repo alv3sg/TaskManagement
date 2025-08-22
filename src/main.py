@@ -1,16 +1,16 @@
 from __future__ import annotations
+import os
 
 from fastapi import FastAPI
-from .core.infrastructure.db.mongodb import get_mongo_client, get_db
+from dotenv import load_dotenv
 from .core.infrastructure.db.settings import MongoSettings
+from .auth.interfaces.auth_http import router as auth_router
+from .auth.interfaces.user_http import router as users_router
+from .auth.infrastructure.jwt_access_token import JwtAccessToken
+from .core.infrastructure.db.mongodb import get_mongo_client, get_db
+from .auth.infrastructure.argon2_hasher import Argon2PasswordHasher
 from .auth.infrastructure.mongo_user_repository import MongoUserRepository
 from .auth.infrastructure.mongo_refresh_token_repository import MongoRefreshTokenRepository
-from .auth.infrastructure.argon2_hasher import Argon2PasswordHasher
-from .auth.infrastructure.jwt_access_token import JwtAccessToken
-from .auth.interfaces.user_http import router as users_router
-from .auth.interfaces.auth_http import router as auth_router
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
 

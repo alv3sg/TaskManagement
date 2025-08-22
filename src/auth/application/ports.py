@@ -1,6 +1,6 @@
 # app/auth/application/ports.py
 from __future__ import annotations
-from typing import Protocol, Iterable, Optional
+from typing import Protocol, Iterable, TypedDict
 from dataclasses import dataclass
 from datetime import timedelta
 from ..domain.entities import User, UserId, Email, PasswordHash, RefreshToken
@@ -44,8 +44,16 @@ class RefreshTokenRepository(Protocol):
     def revoke(self, token_id: str) -> None: ...
 
 
+class AccessTokenClaims(TypedDict):
+    sub: str          # user id
+    exp: int          # unix timestamp
+    scope: str        # e.g. "user", "admin", "user:read user:write"
+    typ: str          # "access"
+
+
 class AccessTokenEncoder(Protocol):
     def encode(self, subject: str, ttl: timedelta) -> str: ...
+    def decode(self, token: str) -> AccessTokenClaims: ...
 
 
 @dataclass

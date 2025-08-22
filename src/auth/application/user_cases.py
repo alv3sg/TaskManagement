@@ -4,10 +4,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from uuid import uuid4, UUID
 from ..domain.entities import User, UserId, Email, PasswordHash, UserStatus, TokenExpired
-from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult
+from .ports import UserRepository, PasswordHasher, NotFound, AlreadyExists, RefreshTokenRepository, AccessTokenEncoder, Unauthorized, LoginResult, AccessTokenClaims
 from datetime import datetime, timezone
-
-# Create (Register)
 
 
 @dataclass
@@ -145,7 +143,14 @@ class Login:
         self.refresh_tokens.add(refresh)
 
         access = self.access_tokens.encode(
-            subject=str(user_id.value), ttl=self.access_ttl)
+            AccessTokenClaims(
+                sub=str(user_id.value),
+                exp=datetime.now(timezone.utc) + self.access_ttl,
+                iat=datetime.now(timezone.utc),
+                jti=str(uuid4()),
+                typ="access",
+            )
+        )
 
         return LoginResult(user_id=user_id, access_token=access, refresh_token=str(refresh.id))
 
@@ -167,7 +172,14 @@ class CreateNewAccessToken:
         except TokenExpired:
             raise Unauthorized("Invalid refresh token.")
         access = self.access_tokens.encode(
-            subject=str(refresh.user_id.value), ttl=self.access_ttl)
+            AccessTokenClaims(
+                sub=str(refresh.user_id.value),
+                exp=datetime.now(timezone.utc) + self.access_ttl,
+                iat=datetime.now(timezone.utc),
+                jti=str(uuid4()),
+                typ="access",
+            )
+        )
         return LoginResult(user_id=refresh.user_id, access_token=access, refresh_token=str(refresh.id))
 
 
