@@ -169,3 +169,19 @@ class CreateNewAccessToken:
         access = self.access_tokens.encode(
             subject=str(refresh.user_id.value), ttl=self.access_ttl)
         return LoginResult(user_id=refresh.user_id, access_token=access, refresh_token=str(refresh.id))
+
+
+@dataclass
+class Logout:
+    refresh_tokens: RefreshTokenRepository
+
+    def execute(self, *, refresh_token: str):
+        try:
+            refresh = self.refresh_tokens.get(refresh_token)
+        except NotFound:
+            raise Unauthorized("Invalid refresh token.")
+        try:
+            refresh.revoke()
+            self.refresh_tokens.save(refresh)
+        except TokenExpired:
+            raise Unauthorized("Invalid refresh token.")

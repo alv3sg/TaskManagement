@@ -43,7 +43,7 @@ def refresh_to_doc(rt: RefreshToken) -> Dict[str, Any]:
 def refresh_from_doc(doc: Dict[str, Any]) -> RefreshToken:
     return RefreshToken(
         id=uuid.UUID(doc["_id"]),
-        user_id=UserId(uuid.UUID(doc["user_id"])),
+        user_id=uuid.UUID(doc["user_id"]),
         issued_at=doc["issued_at"],
         expires_at=doc["expires_at"],
         revoked_at=doc.get("revoked_at"),

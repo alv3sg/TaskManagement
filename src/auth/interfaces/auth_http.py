@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from datetime import timedelta
 from .schemas import LoginRequest, TokenPairResponse, TokenRefreshRequest, TokenRefreshResponse
-from ..application.user_cases import Login, CreateNewAccessToken
+from ..application.user_cases import Login, CreateNewAccessToken, Logout
 from ..application.ports import Unauthorized
 
 router = APIRouter(prefix="", tags=["auth"])
@@ -72,3 +72,20 @@ def refresh(
         "access_token": result.access_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/logout")
+def logout(
+    body: TokenRefreshRequest,
+    refresh_repo=Depends(get_refresh_repo),
+    access_tokens=Depends(get_access_tokens),
+):
+    uc = Logout(
+        refresh_tokens=refresh_repo
+    )
+    try:
+        uc.execute(refresh_token=body.refresh_token)
+    except Unauthorized as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+    return

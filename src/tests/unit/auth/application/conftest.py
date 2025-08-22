@@ -58,19 +58,27 @@ class FakeHasher:
 
 
 class FakeRefreshTokenRepo:
-    def add(self, token: RefreshToken) -> None: ...
+    def __init__(self):
+        self._store = {}  # token_id(str) -> RefreshToken
 
-    def get(self, token_id: str) -> RefreshToken:
-        return RefreshToken(
-            id=UUID(token_id),
-            user_id=UserId.new(),
-            issued_at=datetime.now(timezone.utc),
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
-            revoked_at=None
-        )
+    def add(self, token):
+        self._store[str(token.id)] = token
 
-    def save(self, token: RefreshToken) -> None: ...
-    def revoke(self, token_id: str) -> None: ...
+    def get(self, token_id: str):
+        try:
+            return self._store[token_id]
+        except KeyError:
+            raise NotFound(f"Refresh token {token_id} not found")
+
+    def save(self, token):
+        self._store[str(token.id)] = token
+
+    def revoke(self, token_id: str):
+        if token_id not in self._store:
+            raise NotFound(f"Refresh token {token_id} not found")
+        tok = self._store[token_id]
+        tok.revoked_at = datetime.now(timezone.utc)
+        self._store[token_id] = tok
 
 
 class FakeAccessTokenEncoder:
