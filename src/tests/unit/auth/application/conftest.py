@@ -1,7 +1,7 @@
 import pytest
 from collections import OrderedDict
 from auth.domain.entities import User, UserId, Email, PasswordHash, UserStatus, RefreshToken
-from auth.application.ports import UserRepository, NotFound, RefreshTokenRepository, AccessTokenEncoder, PasswordHasher
+from auth.application.ports import UserRepository, NotFound, RefreshTokenRepository, AccessTokenEncoder, PasswordHasher, AccessTokenClaims
 from datetime import timedelta, timezone, datetime
 from uuid import UUID
 # ---- Fakes ----
@@ -82,8 +82,8 @@ class FakeRefreshTokenRepo:
 
 
 class FakeAccessTokenEncoder:
-    def encode(self, subject: str, ttl: timedelta) -> str:
-        return "token::" + subject + "::" + str(ttl)
+    def encode(self,  claims: AccessTokenClaims) -> AccessTokenClaims:
+        return claims
 # ---- Fixtures ----
 
 

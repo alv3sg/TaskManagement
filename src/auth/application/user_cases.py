@@ -173,7 +173,7 @@ class CreateNewAccessToken:
             raise Unauthorized("Invalid refresh token.")
         access = self.access_tokens.encode(
             AccessTokenClaims(
-                sub=str(refresh.user_id.value),
+                sub=str(refresh.user_id),
                 exp=datetime.now(timezone.utc) + self.access_ttl,
                 iat=datetime.now(timezone.utc),
                 jti=str(uuid4()),
